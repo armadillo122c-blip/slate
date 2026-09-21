@@ -21,6 +21,7 @@ local notify = use("system/notify")
 local compat = use("system/compat")
 local peripherals = use("system/peripherals")
 local sound = use("system/sound")
+local messenger = use("system/messenger")
 
 local kernel = {}
 
@@ -658,11 +659,13 @@ function kernel.run()
     error("Slate needs CC:Tweaked (window.getLine is missing)", 0)
   end
   kernel.relayout()
+  messenger.init(root)
 
   while alive do
     if dirty then kernel.draw() end
     local event = table.pack(os.pullEventRaw())
     local name = event[1]
+    local messengerUpdate = messenger.handleEvent(event)
 
     if name == "term_resize" then
       W, H = native.getSize()
@@ -743,7 +746,13 @@ function kernel.run()
       desktop.systemEvent(event)
       broadcast(event)
     end
+
+    if messengerUpdate then
+      broadcast({ "messenger_update", n = 1 })
+    end
   end
+
+  messenger.shutdown()
 
   -- Leaving Slate should not leave a desktop frozen on someone's wall.
   screens.clearAll()

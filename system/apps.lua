@@ -36,14 +36,10 @@ return {
     icon = { "0000000", "0888880", "0088800" },
   },
   {
-    -- Core, not a store app: talking to the other computers is the reason
-    -- most of these are networked in the first place, and it must work on a
-    -- machine that has never reached the store.
-    -- autostart: it is only useful if it is already listening. Started
-    -- minimised, so it is connected and collecting messages without
-    -- covering the desktop every boot.
+    -- Core app. Networking is handled by system/messenger.lua, so the UI
+    -- can be closed without stopping message reception.
     id = "messenger", title = "Messenger", module = "apps/messenger", w = 42, h = 15,
-    single = true, autostart = true,
+    single = true,
     icon = { "2222222", "2222222", " 2     " },
   },
   {

@@ -22,6 +22,7 @@
     "system/infection.lua",
     "system/kernel.lua",
     "system/notify.lua",
+    "system/messenger.lua",
     "system/oobe.lua",
     "system/peripherals.lua",
     "system/screens.lua",
@@ -56,5 +57,5 @@
     "games/snake.lua",
     "games/stacks.lua"
   ],
-  "notes": "Verity: a tripwire that refuses destructive actions and then makes a scene."
+  "notes": "Messenger networking runs as a background service; received messages are persisted and shown when Messenger opens."
 }

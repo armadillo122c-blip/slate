@@ -37,7 +37,6 @@ local selected = 1
 local clockTimer
 local animTimer
 local updateTimer
-local autostartTimer
 local updatePending
 local restartAt = nil              -- os.clock() when the countdown fires
 
@@ -677,19 +676,6 @@ function desktop.systemEvent(event)
     considerRestart()
     kernel.invalidate()
 
-  elseif event[1] == "slate_verity" then
-    wakeVerity(event[2])
-
-  elseif event[1] == "timer" and event[2] == autostartTimer then
-    autostartTimer = nil
-    for _, id in ipairs(catalog.autostart()) do
-      local proc = desktop.launch(id)
-      -- Minimised: running and listening, without burying the desktop under
-      -- windows nobody asked to see.
-      if proc then kernel.minimise(proc) end
-    end
-    kernel.invalidate()
-
   elseif event[1] == "timer" and event[2] == updateTimer then
     updateTimer = os.startTimer(CHECK_EVERY)
     desktop.checkForUpdate()
@@ -712,9 +698,9 @@ function desktop.init(k, loader)
   wallpaper.load()
   animTimer = os.startTimer(0.3)
 
-  -- Both of these run after the desktop is up rather than during boot, so a
-  -- slow app or an unreachable server cannot delay startup.
-  autostartTimer = os.startTimer(1)
+  -- Store/update work starts after the desktop is up, so a slow server cannot
+  -- delay startup. Messenger itself is initialized by the kernel and needs no
+  -- UI window to stay alive.
   updateTimer = os.startTimer(4)
 end
 
