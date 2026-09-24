@@ -16,17 +16,25 @@ local app = {}
 local BROADCAST = "all"
 
 local function panel(title, lines)
-  local width, height = term.getSize()
-  term.setBackgroundColour(theme.colour.window)
-  term.clear()
-  ui.row(term, 1, 1, width, " " .. title, colours.white, theme.colour.danger)
-  for index, line in ipairs(lines) do
-    ui.text(term, 2, index + 2, ui.clip(line, width - 2),
-      theme.colour.windowText, theme.colour.window)
+  local function draw()
+    local width, height = term.getSize()
+    term.setBackgroundColour(theme.colour.window)
+    term.clear()
+    ui.row(term, 1, 1, width, " " .. title, colours.white, theme.colour.danger)
+    for index, line in ipairs(lines) do
+      if index + 2 >= height then break end
+      ui.text(term, 2, index + 2, ui.clip(line, width - 2),
+        theme.colour.windowText, theme.colour.window)
+    end
+    ui.row(term, 1, height, width, " Any key to close",
+      theme.colour.mutedText, theme.colour.muted)
   end
-  ui.row(term, 1, height, width, " Any key to close",
-    theme.colour.mutedText, theme.colour.muted)
-  os.pullEvent("key")
+  draw()
+  while true do
+    local event = os.pullEvent()
+    if event == "term_resize" then draw()
+    elseif event == "key" then return end
+  end
 end
 
 function app.run(ctx)
@@ -107,18 +115,77 @@ function app.run(ctx)
     return out
   end
 
+  local function chatName()
+    if target == BROADCAST then return "Everyone" end
+    for _, peer in ipairs(peers()) do
+      if tostring(peer.id) == tostring(target) then return peer.name end
+    end
+    return "computer " .. tostring(target)
+  end
+
+  local function printChat()
+    local printer = peripheral.find and peripheral.find("printer")
+    if not printer then return false, "No printer attached" end
+
+    local messages = messenger.messages(target)
+    local body = {}
+    for index, entry in ipairs(messages) do
+      if index > 1 then body[#body + 1] = "" end
+      local who = entry.mine and "You" or tostring(entry.who or "Unknown")
+      body[#body + 1] = ("[%s] %s"):format(tostring(entry.time or "--:--"), who)
+      local content = tostring(entry.text or ""):gsub("\r\n", "\n"):gsub("\r", "\n")
+        :gsub("[^\n\t -~]", "?")
+      for paragraph in (content .. "\n"):gmatch("([^\n]*)\n") do
+        body[#body + 1] = "  " .. paragraph
+      end
+    end
+    if #body == 0 then body[1] = "(No messages yet.)" end
+
+    local ok, success, result = pcall(function()
+      if not printer.newPage() then return false, "Printer needs paper and ink" end
+      local width, height = printer.getPageSize()
+      local wrapped = {}
+      for _, line in ipairs(body) do
+        if line == "" then
+          wrapped[#wrapped + 1] = ""
+        else
+          for _, piece in ipairs(ui.wrap(line, width)) do
+            wrapped[#wrapped + 1] = piece
+          end
+        end
+      end
+
+      local name = chatName()
+      local rows = math.max(1, height - 1)
+      local pages = math.max(1, math.ceil(#wrapped / rows))
+      for page = 1, pages do
+        if page > 1 and not printer.newPage() then
+          return false, "Printer needs paper and ink"
+        end
+        printer.setPageTitle(("Messenger - %s"):format(name):sub(1, 16))
+        printer.setCursorPos(1, 1)
+        printer.write(("Messenger: %s (%d/%d)"):format(name, page, pages):sub(1, width))
+        local first = (page - 1) * rows + 1
+        local last = math.min(#wrapped, first + rows - 1)
+        for index = first, last do
+          printer.setCursorPos(1, index - first + 2)
+          printer.write(wrapped[index])
+        end
+        if not printer.endPage() then return false, "Printer output tray is full" end
+      end
+      return true, ("Printed %d page%s"):format(pages, pages == 1 and "" or "s")
+    end)
+
+    if not ok then return false, tostring(success) end
+    return success, result
+  end
+
   local function drawChat(keepCursor)
     local width, height = term.getSize()
     local cx, cy = term.getCursorPos()
     local fg, bg = term.getTextColour(), term.getBackgroundColour()
 
-    local name = target == BROADCAST and "Everyone"
-      or (function()
-        for _, peer in ipairs(peers()) do
-          if tostring(peer.id) == tostring(target) then return peer.name end
-        end
-        return "computer " .. tostring(target)
-      end)()
+    local name = chatName()
 
     local rows = math.max(1, height - 3)
     local lines = chatLines(width - 2)
@@ -143,7 +210,7 @@ function app.run(ctx)
 
     ui.row(term, 1, height - 1, width, " > ",
       theme.colour.windowText, theme.colour.muted)
-    ui.row(term, 1, height, width, " [Enter] write   [Backspace] back",
+    ui.row(term, 1, height, width, " [Enter] write  [P]rint  [Backspace] back",
       theme.colour.mutedText, theme.colour.muted)
 
     if keepCursor then
@@ -291,6 +358,10 @@ function app.run(ctx)
         elseif key == keys.down then
           chatScroll = math.max(0, chatScroll - 1)
           drawChat(false)
+        elseif key == keys.p then
+          local ok, result = printChat()
+          panel(ok and "Print complete" or "Print failed", { result })
+          draw()
         elseif key == keys.enter then
           local text = compose()
           if text and text ~= "" then

@@ -142,48 +142,6 @@ function app.run(ctx, openPath)
     return true, target
   end
 
-  local function printCanvas()
-    local printer = peripheral.find and peripheral.find("printer")
-    if not printer then return false, "No printer attached" end
-
-    local ok, success, message = pcall(function()
-      if not printer.newPage() then return false, "Printer needs paper and ink" end
-      local pageW, pageH = printer.getPageSize()
-      local scale = math.min(1, pageW / canvasW, pageH / canvasH)
-      local outW = math.max(1, math.floor(canvasW * scale))
-      local outH = math.max(1, math.floor(canvasH * scale))
-      local glyph = {
-        [colours.white] = " ", [colours.orange] = "#",
-        [colours.magenta] = "%", [colours.lightBlue] = "=",
-        [colours.yellow] = "+", [colours.lime] = "o",
-        [colours.pink] = "*", [colours.grey] = ":",
-        [colours.lightGrey] = ".", [colours.cyan] = "-",
-        [colours.purple] = "&", [colours.blue] = "x",
-        [colours.brown] = "s", [colours.green] = "v",
-        [colours.red] = "X", [colours.black] = "@",
-      }
-
-      printer.setPageTitle((path and fs.getName(path) or "Slate Paint"):sub(1, 16))
-      for row = 1, outH do
-        local sourceY = math.min(canvasH, math.floor((row - 1) / scale) + 1)
-        local chars = {}
-        for column = 1, outW do
-          local sourceX = math.min(canvasW, math.floor((column - 1) / scale) + 1)
-          local pixel = normaliseColour(pixels[sourceY] and pixels[sourceY][sourceX])
-          chars[column] = pixel and (glyph[pixel] or "#") or " "
-        end
-        printer.setCursorPos(1, row)
-        printer.write(table.concat(chars))
-      end
-
-      if not printer.endPage() then return false, "Printer output tray is full" end
-      return true, ("Printed %d×%d character image"):format(outW, outH)
-    end)
-
-    if not ok then return false, tostring(success) end
-    return success, message
-  end
-
   local function draw()
     term.setBackgroundColour(windowColour)
     term.clear()
@@ -243,7 +201,7 @@ function app.run(ctx, openPath)
         1,
         height,
         width,
-        " click to paint  [S]ave  [O]pen  [P]rint  [C]lear",
+        " click to paint  [S]ave  [O]pen  [C]lear",
         mutedText,
         muted
       )
@@ -309,10 +267,6 @@ function app.run(ctx, openPath)
             say("Could not open")
           end
         end
-
-      elseif a == keys.p then
-        local ok, result = printCanvas()
-        say(ok and result or ("Print failed: " .. tostring(result)))
 
       elseif a == keys.c then
         for row = 1, canvasH do
