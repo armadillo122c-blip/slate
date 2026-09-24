@@ -73,6 +73,13 @@ local function clamp(proc)
   proc.y = math.max(1, math.min(proc.y, DESK_H - proc.h + 1))
 end
 
+local function redrawOnResize(proc)
+  if type(proc.onResize) ~= "function" then return end
+  local previous = term.redirect(proc.content)
+  pcall(proc.onResize)
+  term.redirect(previous)
+end
+
 local function topAt(mx, my)
   for index = #processes, 1, -1 do
     local proc = processes[index]
@@ -157,6 +164,7 @@ function kernel.toggleFullscreen(proc)
   proc.content.reposition(1, 2, proc.w, proc.h - 1)
   clamp(proc)
   dirty = true
+  redrawOnResize(proc)
   kernel.resume(proc, { "term_resize", n = 1 })
 end
 
@@ -169,6 +177,9 @@ local function contextFor(proc)
     launch = function(id, args) if kernel.launcher then return kernel.launcher(id, args) end end,
     size = function() return proc.content.getSize() end,
     redraw = function() dirty = true end,
+    onResize = function(fn)
+      proc.onResize = type(fn) == "function" and fn or nil
+    end,
     onClose = function(fn) proc.onClose = fn end,
     power = function(mode) kernel.power(mode) end,
     notify = function(text) notify.push(proc.appId, text) end,
@@ -634,6 +645,7 @@ function kernel.relayout()
     proc.frame.reposition(1, 1, proc.w, proc.h)
     proc.content.reposition(1, 2, proc.w, proc.h - 1)
     clamp(proc)
+    redrawOnResize(proc)
     kernel.resume(proc, { "term_resize", n = 1 })
   end
   dirty = true
@@ -680,6 +692,7 @@ function kernel.run()
           proc.x, proc.y, proc.w, proc.h = 1, 1, W, DESK_H
           proc.frame.reposition(1, 1, proc.w, proc.h)
           proc.content.reposition(1, 2, proc.w, proc.h - 1)
+          redrawOnResize(proc)
           kernel.resume(proc, { "term_resize", n = 1 })
         end
         clamp(proc)

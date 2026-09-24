@@ -22,11 +22,12 @@
     1  run(ctx): close, setTitle, launch, size, redraw
     2  + onClose, fullscreen, root
     3  + power, notify
+    4  + onResize
 ]]
 
 local compat = {}
 
-compat.API = 3
+compat.API = 4
 
 -- Every module shape Slate has accepted. Returning a bare function was the
 -- obvious thing to write before there was a documented shape, so it still

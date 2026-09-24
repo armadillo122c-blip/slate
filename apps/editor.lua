@@ -48,6 +48,8 @@ function app.run(ctx, path)
     return
   end
 
+  -- CraftOS's editor handles term_resize itself. Slate forwards resize events
+  -- even while its event filter is waiting for another event.
   shell.run("/rom/programs/edit.lua", path)
 end
 

@@ -26,10 +26,20 @@ local STEPS = {
 
 function app.run(ctx)
   local width, height = term.getSize()
+  local phase = "Free up memory on this computer"
 
   local function centre(y, text, fg, bg)
     ui.centre(term, y, text, fg, bg, 1, width)
   end
+
+  ctx.onResize(function()
+    width, height = term.getSize()
+    term.setBackgroundColour(colours.white)
+    term.setTextColour(colours.black)
+    term.clear()
+    ui.row(term, 1, 1, width, " FreeRAM.exe", colours.white, colours.blue)
+    centre(math.max(2, math.floor(height / 2)), phase, colours.black, colours.white)
+  end)
 
   -- Act one: the helpful utility.
   term.setBackgroundColour(colours.white)
@@ -47,6 +57,7 @@ function app.run(ctx)
   end
 
   for index, step in ipairs(STEPS) do
+    phase = step
     term.setBackgroundColour(colours.white)
     term.clear()
     ui.row(term, 1, 1, width, " FreeRAM.exe", colours.white, colours.blue)
@@ -63,6 +74,7 @@ function app.run(ctx)
   end
 
   -- Act two.
+  phase = "0 MB freed."
   term.setBackgroundColour(colours.white)
   term.clear()
   ui.row(term, 1, 1, width, " FreeRAM.exe", colours.white, colours.blue)
@@ -70,12 +82,14 @@ function app.run(ctx)
   sleep(1)
 
   centre(6, "just kidding", colours.grey, colours.white)
+  phase = "just kidding"
   sleep(1.2)
 
   infection.infect()
   ctx.notify("FreeRAM.exe: thanks for installing :)")
 
   for round = 1, 12 do
+    phase = "YOUR PC IS NOW CORRUPTED"
     term.setBackgroundColour(colours.black)
     term.clear()
     for _ = 1, 30 do

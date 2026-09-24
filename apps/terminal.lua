@@ -29,6 +29,8 @@ function app.run(ctx, dir)
 
   -- Returning from here closes the window, so `exit` in the shell closes the
   -- terminal, which is what anyone would expect.
+  -- The CraftOS shell redraws its prompt on term_resize; Slate forwards that
+  -- event even when the shell is waiting for input.
   shell.run("/rom/programs/shell.lua")
 end
 

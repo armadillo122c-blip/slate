@@ -133,6 +133,8 @@ function app.run(ctx)
       theme.colour.mutedText, theme.colour.muted)
   end
 
+  ctx.onResize(draw)
+
   ------------------------------------------------------------------
   -- the API
   ------------------------------------------------------------------

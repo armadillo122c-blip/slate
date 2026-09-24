@@ -84,6 +84,8 @@ function app.run(ctx)
       theme.colour.mutedText, theme.colour.muted)
   end
 
+  ctx.onResize(draw)
+
   local function run(source)
     -- Reading stored tokens or deleting the OS from a prompt is not a
     -- mistake anybody makes by accident.
