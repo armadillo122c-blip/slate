@@ -234,7 +234,17 @@ function app.run(ctx)
       },
       { label = "Check now", value = "", act = function() ctx.launch("updater") end },
       {
-        label = "Source", value = update.isDefaultUrl() and "default" or "custom",
+        label = "Channel",
+        value = update.channel() == "beta" and "Beta" or "Stable",
+        act = function()
+          local next_ = update.channel() == "beta" and "stable" or "beta"
+          update.setChannel(next_)
+          say("Update channel: " .. (next_ == "beta" and "Beta" or "Stable"))
+        end,
+      },
+      {
+        label = "Source",
+        value = update.isDefaultUrl() and update.channel() or "custom",
         act = function()
           local typed = ask("Update base URL (blank = default):", update.url())
           if typed == nil then return end

@@ -20,14 +20,31 @@ local MANIFEST = "manifest.json"
 -- Where Slate updates from unless Settings says otherwise. Raw GitHub serves
 -- the repository's files directly over plain HTTPS, which is all CC's http
 -- API can do - no auth headers, no API tokens.
-local DEFAULT_URL = "https://raw.githubusercontent.com/armadillo122c-blip/slate/main"
+local CHANNEL_URLS = {
+  stable = "https://raw.githubusercontent.com/armadillo122c-blip/slate/main",
+  beta = "https://raw.githubusercontent.com/armadillo122c-blip/slate/beta",
+}
+
+function update.channel()
+  local ok, value = pcall(settings.get, "slate.update.channel")
+  if ok and (value == "stable" or value == "beta") then return value end
+  return "stable"
+end
+
+function update.setChannel(channel)
+  if channel ~= "stable" and channel ~= "beta" then return end
+  pcall(function()
+    settings.set("slate.update.channel", channel)
+    settings.save()
+  end)
+end
 
 function update.url()
   local ok, value = pcall(settings.get, "slate.update.url")
   if ok and type(value) == "string" and value ~= "" then
     return (value:gsub("/+$", ""))
   end
-  return DEFAULT_URL
+  return CHANNEL_URLS[update.channel()]
 end
 
 function update.isDefaultUrl()
