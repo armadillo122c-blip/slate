@@ -26,7 +26,7 @@ function app.run(ctx, mode)
     ui.row(term, 1, 1, width, " Slate Update", theme.colour.accentText, theme.colour.accent)
 
     ui.text(term, 2, 3, "Installed", theme.colour.mutedText, theme.colour.window)
-    ui.text(term, 13, 3, update.VERSION, theme.colour.windowText, theme.colour.window)
+    ui.text(term, 13, 3, update.version(), theme.colour.windowText, theme.colour.window)
 
     if state == "checking" then
       ui.text(term, 2, 5, "Checking for updates...", theme.colour.windowText, theme.colour.window)

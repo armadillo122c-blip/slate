@@ -242,7 +242,7 @@ function app.run(ctx)
           say("Saved")
         end,
       },
-      { label = "Version", value = update.VERSION, fact = true },
+      { label = "Version", value = update.version(), fact = true },
     }
   end
 

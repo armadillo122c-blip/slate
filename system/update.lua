@@ -15,8 +15,6 @@
 
 local update = {}
 
-update.VERSION = "1.29"
-
 local MANIFEST = "manifest.json"
 
 -- Where Slate updates from unless Settings says otherwise. Raw GitHub serves
@@ -43,6 +41,25 @@ function update.setUrl(value)
       settings.unset("slate.update.url")
     else
       settings.set("slate.update.url", value)
+    end
+    settings.save()
+  end)
+end
+
+-- The installed version is persisted so releases do not need to be hardcoded
+-- in the updater. A missing value means this install has not recorded one yet.
+function update.version()
+  local ok, value = pcall(settings.get, "slate.version")
+  if ok and type(value) == "string" and value ~= "" then return value end
+  return "0"
+end
+
+function update.setVersion(value)
+  pcall(function()
+    if value == nil or value == "" then
+      settings.unset("slate.version")
+    else
+      settings.set("slate.version", value)
     end
     settings.save()
   end)
@@ -136,7 +153,7 @@ function update.check()
     version = manifest.version,
     files = manifest.files,
     notes = type(manifest.notes) == "string" and manifest.notes or nil,
-    newer = update.isNewer(manifest.version, update.VERSION),
+    newer = update.isNewer(manifest.version, update.version()),
   }
 end
 
@@ -174,6 +191,7 @@ function update.install(info, root, progress)
     handle.close()
   end
 
+  if type(info.version) == "string" then update.setVersion(info.version) end
   return true, total
 end
 
