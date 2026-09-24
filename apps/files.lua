@@ -48,6 +48,41 @@ local function readDir(dir)
   return entries
 end
 
+local function printFile(entry)
+  local printer = peripheral.find and peripheral.find("printer")
+  if not printer then return false, "No printer attached" end
+
+  local handle, err = fs.open(entry.path, "r")
+  if not handle then return false, tostring(err or "Could not open file") end
+  local ok, contents = pcall(handle.readAll)
+  handle.close()
+  if not ok then return false, tostring(contents) end
+
+  contents = tostring(contents):gsub("\r\n", "\n"):gsub("\r", "\n")
+    :gsub("[^\n\t -~]", "?")
+  if not printer.newPage() then return false, "Printer needs paper and ink" end
+  local width, height = printer.getPageSize()
+  local lines = ui.wrap(contents, width)
+  if #lines == 0 then lines = { "" } end
+  local pageCount = math.ceil(#lines / height)
+
+  for page = 1, pageCount do
+    if page > 1 and not printer.newPage() then
+      return false, "Printer needs paper and ink"
+    end
+    printer.setPageTitle(entry.name:sub(1, 16))
+    local first = (page - 1) * height + 1
+    local last = math.min(#lines, first + height - 1)
+    for index = first, last do
+      printer.setCursorPos(1, index - first + 1)
+      printer.write(lines[index])
+    end
+    if not printer.endPage() then return false, "Printer output tray is full" end
+  end
+
+  return true, ("Printed %d page%s"):format(pageCount, pageCount == 1 and "" or "s")
+end
+
 --------------------------------------------------------------------------
 -- modal helpers
 --------------------------------------------------------------------------
@@ -162,7 +197,7 @@ function app.run(ctx, startDir)
     ui.scrollbar(term, w, listTop, rows, #entries, scroll,
       theme.colour.muted, theme.colour.accent)
 
-    ui.row(term, 1, h, w, " [Enter]open [N]ew [F]older [Del]ete",
+    ui.row(term, 1, h, w, " [Enter]open [P]rint [N]ew [F]older [Del]ete",
       theme.colour.mutedText, theme.colour.muted)
   end
 
@@ -206,6 +241,13 @@ function app.run(ctx, startDir)
       elseif key == keys.backspace then
         if dir ~= "/" then enter({ path = fs.getDir(dir), isDir = true }) end
       elseif key == keys.r then refresh()
+
+      elseif key == keys.p then
+        local entry = entries[index]
+        if entry and not entry.isDir and not entry.up then
+          local ok, result = printFile(entry)
+          notice(ok and "Print complete" or "Print failed", result)
+        end
 
       elseif key == keys.delete then
         local entry = entries[index]
