@@ -44,6 +44,90 @@ function ui.clip(text, width)
   return text:sub(1, width - 2) .. ".."
 end
 
+-- A compact single-line editor for app prompts. Unlike the built-in read(),
+-- this returns terminal resizes to the app so its surrounding screen can be
+-- laid out again while preserving the text being entered.
+function ui.inputLine(target, x, y, value, opts)
+  opts = opts or {}
+  value = tostring(value or "")
+  local cursor = #value
+  local historyIndex, savedInput = nil, nil
+
+  local function position()
+    local px = type(x) == "function" and x() or x
+    local py = type(y) == "function" and y() or y
+    return px, py
+  end
+
+  local function drawInput()
+    local width = target.getSize()
+    local px, py = position()
+    local available = math.max(0, width - px + 1)
+    local first = math.max(1, cursor - available + 1)
+    local shown = value:sub(first, first + available - 1)
+    local shownCursor = math.min(available, cursor - first + 1)
+    target.setCursorPos(px, py)
+    target.setBackgroundColour(opts.bg or colours.white)
+    target.setTextColour(opts.fg or colours.black)
+    target.write((" "):rep(available))
+    target.setCursorPos(px, py)
+    target.write(opts.mask and opts.mask:rep(#shown) or shown)
+    target.setCursorPos(px + shownCursor, py)
+    target.setCursorBlink(true)
+  end
+
+  drawInput()
+  while true do
+    local event, a = os.pullEvent()
+    if event == "term_resize" then
+      if opts.onResize then opts.onResize() end
+      drawInput()
+    elseif event == "char" then
+      value = value:sub(1, cursor) .. a .. value:sub(cursor + 1)
+      cursor = cursor + #a
+      drawInput()
+    elseif event == "paste" then
+      value = value:sub(1, cursor) .. a .. value:sub(cursor + 1)
+      cursor = cursor + #a
+      drawInput()
+    elseif event == "key" then
+      if a == keys.enter or a == keys.numPadEnter then
+        target.setCursorBlink(false)
+        return value
+      elseif a == keys.backspace and cursor > 0 then
+        value = value:sub(1, cursor - 1) .. value:sub(cursor + 1)
+        cursor = cursor - 1
+      elseif a == keys.delete and cursor < #value then
+        value = value:sub(1, cursor) .. value:sub(cursor + 2)
+      elseif a == keys.left then
+        cursor = math.max(0, cursor - 1)
+      elseif a == keys.right then
+        cursor = math.min(#value, cursor + 1)
+      elseif a == keys.home then
+        cursor = 0
+      elseif a == keys["end"] then
+        cursor = #value
+      elseif a == keys.up and opts.history and #opts.history > 0 then
+        if historyIndex == nil then savedInput = value; historyIndex = #opts.history
+        else historyIndex = math.max(1, historyIndex - 1) end
+        value = tostring(opts.history[historyIndex] or "")
+        cursor = #value
+      elseif a == keys.down and historyIndex ~= nil then
+        if historyIndex < #opts.history then
+          historyIndex = historyIndex + 1
+          value = tostring(opts.history[historyIndex] or "")
+        else
+          historyIndex, value = nil, savedInput or ""
+        end
+        cursor = #value
+      else
+        drawInput()
+      end
+      drawInput()
+    end
+  end
+end
+
 function ui.row(target, x, y, w, text, fg, bg)
   ui.text(target, x, y, ui.pad(text, w), fg, bg)
 end

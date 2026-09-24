@@ -164,17 +164,13 @@ function app.run(ctx)
       theme.colour.mutedText, theme.colour.muted)
   end
 
-  ctx.onResize(draw)
-
   draw()
 
   while true do
-    local width, height = term.getSize()
-    term.setCursorPos(4, height - 1)
-    term.setBackgroundColour(colours.white)
-    term.setTextColour(colours.black)
-
-    local source = read(nil, typed)
+    local source = ui.inputLine(term, 4, function()
+      local _, height = term.getSize()
+      return height - 1
+    end, "", { history = typed, onResize = draw })
     if source == nil then return end
 
     if source ~= "" then

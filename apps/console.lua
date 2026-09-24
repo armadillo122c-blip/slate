@@ -84,8 +84,6 @@ function app.run(ctx)
       theme.colour.mutedText, theme.colour.muted)
   end
 
-  ctx.onResize(draw)
-
   local function run(source)
     -- Reading stored tokens or deleting the OS from a prompt is not a
     -- mistake anybody makes by accident.
@@ -123,12 +121,10 @@ function app.run(ctx)
   draw()
 
   while true do
-    local width, height = term.getSize()
-    term.setCursorPos(4, height - 1)
-    term.setBackgroundColour(colours.black)
-    term.setTextColour(colours.white)
-
-    local source = read(nil, typed)
+    local source = ui.inputLine(term, 4, function()
+      local _, height = term.getSize()
+      return height - 1
+    end, "", { history = typed, bg = colours.black, fg = colours.white, onResize = draw })
     if source == nil then return end
     if source ~= "" then
       typed[#typed + 1] = source

@@ -133,8 +133,6 @@ function app.run(ctx)
       theme.colour.mutedText, theme.colour.muted)
   end
 
-  ctx.onResize(draw)
-
   ------------------------------------------------------------------
   -- the API
   ------------------------------------------------------------------
@@ -201,17 +199,17 @@ function app.run(ctx)
   ------------------------------------------------------------------
 
   local function askKey()
-    local width, height = term.getSize()
-    ui.panel(term, 2, 3, width - 2, 7, theme.colour.muted, theme.colour.accent)
-    ui.text(term, 4, 4, "Gemini API key", colours.black, theme.colour.muted)
-    ui.text(term, 4, 5, "from Google AI Studio", theme.colour.mutedText, theme.colour.muted)
-    ui.fill(term, 4, 7, width - 6, 1, colours.white)
-    term.setCursorPos(4, 7)
-    term.setBackgroundColour(colours.white)
-    term.setTextColour(colours.black)
+    local function drawDialog()
+      local width = term.getSize()
+      ui.panel(term, 2, 3, width - 2, 7, theme.colour.muted, theme.colour.accent)
+      ui.text(term, 4, 4, "Gemini API key", colours.black, theme.colour.muted)
+      ui.text(term, 4, 5, "from Google AI Studio", theme.colour.mutedText, theme.colour.muted)
+      ui.fill(term, 4, 7, width - 6, 1, colours.white)
+    end
+    drawDialog()
     -- Masked: the key should never appear on a screen someone might be
     -- watching, or in a remote session.
-    local entered = read("*")
+    local entered = ui.inputLine(term, 4, 7, "", { mask = "*", onResize = drawDialog })
     if entered and entered ~= "" then
       apiKey = entered
       saveSetting(KEY_SETTING, entered)
@@ -220,14 +218,14 @@ function app.run(ctx)
   end
 
   local function askModel()
-    local width = term.getSize()
-    ui.panel(term, 2, 3, width - 2, 6, theme.colour.muted, theme.colour.accent)
-    ui.text(term, 4, 4, "Model name:", colours.black, theme.colour.muted)
-    ui.fill(term, 4, 6, width - 6, 1, colours.white)
-    term.setCursorPos(4, 6)
-    term.setBackgroundColour(colours.white)
-    term.setTextColour(colours.black)
-    local entered = read(nil, nil, nil, model)
+    local function drawDialog()
+      local width = term.getSize()
+      ui.panel(term, 2, 3, width - 2, 6, theme.colour.muted, theme.colour.accent)
+      ui.text(term, 4, 4, "Model name:", colours.black, theme.colour.muted)
+      ui.fill(term, 4, 6, width - 6, 1, colours.white)
+    end
+    drawDialog()
+    local entered = ui.inputLine(term, 4, 6, model, { onResize = drawDialog })
     if entered and entered ~= "" then
       model = entered
       saveSetting(MODEL_SETTING, entered)
@@ -242,12 +240,10 @@ function app.run(ctx)
   draw()
 
   while true do
-    local width, height = term.getSize()
-    term.setCursorPos(4, height - 1)
-    term.setBackgroundColour(colours.white)
-    term.setTextColour(colours.black)
-
-    local input = read(nil, typed)
+    local input = ui.inputLine(term, 4, function()
+      local _, height = term.getSize()
+      return height - 1
+    end, "", { history = typed, onResize = draw })
     if input == nil then return end
 
     if input == "" then
