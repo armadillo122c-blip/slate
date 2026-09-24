@@ -164,7 +164,6 @@ function kernel.toggleFullscreen(proc)
   proc.content.reposition(1, 2, proc.w, proc.h - 1)
   clamp(proc)
   dirty = true
-  redrawOnResize(proc)
   kernel.resume(proc, { "term_resize", n = 1 })
 end
 
@@ -293,6 +292,7 @@ function kernel.resume(proc, event)
   else
     proc.filter = result
   end
+  if name == "term_resize" and not proc.dead then redrawOnResize(proc) end
 end
 
 local function broadcast(event)
@@ -645,7 +645,6 @@ function kernel.relayout()
     proc.frame.reposition(1, 1, proc.w, proc.h)
     proc.content.reposition(1, 2, proc.w, proc.h - 1)
     clamp(proc)
-    redrawOnResize(proc)
     kernel.resume(proc, { "term_resize", n = 1 })
   end
   dirty = true
@@ -692,7 +691,6 @@ function kernel.run()
           proc.x, proc.y, proc.w, proc.h = 1, 1, W, DESK_H
           proc.frame.reposition(1, 1, proc.w, proc.h)
           proc.content.reposition(1, 2, proc.w, proc.h - 1)
-          redrawOnResize(proc)
           kernel.resume(proc, { "term_resize", n = 1 })
         end
         clamp(proc)
