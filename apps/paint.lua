@@ -76,6 +76,9 @@ function app.run(ctx, openPath)
   end
 
   local function load(target)
+    if not target:lower():match("%.nfp$") then
+      target = target .. ".nfp"
+    end
     local ok, image = pcall(paintutils.loadImage, target)
     if not ok or type(image) ~= "table" then
       return false
