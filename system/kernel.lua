@@ -250,7 +250,8 @@ end
 function kernel.resume(proc, event)
   if proc.dead or coroutine.status(proc.co) == "dead" then return end
   local name = event[1]
-  if proc.filter and name ~= nil and name ~= proc.filter and name ~= "terminate" then return end
+  if proc.filter and name ~= nil and name ~= proc.filter and name ~= "terminate"
+      and name ~= "term_resize" then return end
 
   local previous = term.redirect(proc.content)
   local ok, result = coroutine.resume(proc.co, table.unpack(event, 1, event.n or #event))
