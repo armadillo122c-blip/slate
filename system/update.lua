@@ -10,14 +10,21 @@
   a half-updated OS is worse than an out-of-date one.
 
   The URL and the auto setting live in CC's settings, so they survive updates
-  of Slate itself.
+  of Slate itself. So does the version an install last wrote: that, not the
+  number below, is what the next check compares against, so a release only
+  has to bump manifest.json.
 ]]
 
 local update = {}
 
-update.VERSION = "1.29"
+-- The release this file shipped in. It is only a floor for a copy that has
+-- never been through install(), such as a folder copied on by hand. 1.30 to
+-- 1.32 bumped the manifest but not this, so every computer kept reading 1.29,
+-- reinstalling, restarting, and reading 1.29 again.
+local BUILT_IN = "1.33"
 
 local MANIFEST = "manifest.json"
+local INSTALLED = "slate.update.installed"
 
 -- Where Slate updates from unless Settings says otherwise. Raw GitHub serves
 -- the repository's files directly over plain HTTPS, which is all CC's http
@@ -108,6 +115,19 @@ function update.isNewer(candidate, current)
   return false
 end
 
+-- The version on disk right now. Re-read every time, so once an install has
+-- written a release, checking again before the restart does not fetch it again.
+function update.installed()
+  local ok, value = pcall(settings.get, INSTALLED)
+  if ok and type(value) == "string" and update.isNewer(value, BUILT_IN) then
+    return value
+  end
+  return BUILT_IN
+end
+
+-- The version that is running: read once, when Slate booted.
+update.VERSION = update.installed()
+
 local function fetch(url)
   local response, err = http.get(url)
   if not response then return nil, tostring(err) end
@@ -136,7 +156,7 @@ function update.check()
     version = manifest.version,
     files = manifest.files,
     notes = type(manifest.notes) == "string" and manifest.notes or nil,
-    newer = update.isNewer(manifest.version, update.VERSION),
+    newer = update.isNewer(manifest.version, update.installed()),
   }
 end
 
@@ -172,6 +192,15 @@ function update.install(info, root, progress)
     if not handle then return false, "Could not write " .. path .. ": " .. tostring(err) end
     handle.write(file.body)
     handle.close()
+  end
+
+  -- Recorded last, so a write that fails part way leaves the old version
+  -- standing and the next check tries again.
+  if type(info.version) == "string" then
+    pcall(function()
+      settings.set(INSTALLED, info.version)
+      settings.save()
+    end)
   end
 
   return true, total
