@@ -1,5 +1,5 @@
 {
-  "version": "1.32",
+  "version": "1.33",
   "files": [
     "apps/cloud.lua",
     "apps/editor.lua",
@@ -57,5 +57,5 @@
     "games/snake.lua",
     "games/stacks.lua"
   ],
-  "notes": "Fixed paint opening files"
+  "notes": "Fixed the update loop: 1.30 to 1.32 reinstalled themselves and restarted over and over"
 }
